@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     libasound2 \
+    fonts-unifont \
+    fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -31,9 +33,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
+# Install Playwright browsers (sin install-deps que falla en Debian)
 RUN playwright install chromium
-RUN playwright install-deps chromium
 
 COPY . .
 
