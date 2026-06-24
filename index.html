@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente de Prospección</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0f0f13;
+            --surface: #1a1a22;
+            --surface2: #22222e;
+            --border: #2e2e3e;
+            --accent: #6366f1;
+            --accent2: #8b5cf6;
+            --text: #e8e8f0;
+            --text-muted: #8888aa;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 16px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .header-info h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .header-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            margin-left: auto;
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        /* Chat */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-container::-webkit-scrollbar { width: 4px; }
+        .chat-container::-webkit-scrollbar-track { background: transparent; }
+        .chat-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* Messages */
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message.agent .avatar {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+        }
+
+        .message.user .avatar {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 100%;
+        }
+
+        .message.agent .bubble {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-top-left-radius: 4px;
+        }
+
+        .message.user .bubble {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-top-right-radius: 4px;
+            color: white;
+        }
+
+        /* Status messages */
+        .status-message {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 8px 0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Result cards */
+        .result-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 0;
+            transition: border-color 0.2s;
+        }
+
+        .result-card:hover { border-color: var(--accent); }
+
+        .result-card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .result-card .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .tag.signal {
+            border-color: var(--yellow);
+            color: var(--yellow);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .result-card a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .result-card a:hover { text-decoration: underline; }
+
+        /* Welcome */
+        .welcome {
+            text-align: center;
+            padding: 48px 24px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .welcome-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 20px;
+        }
+
+        .welcome h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .welcome p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .suggestion {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+        }
+
+        .suggestion:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Input */
+        .input-area {
+            padding: 16px 24px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .input-wrapper:focus-within { border-color: var(--accent); }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        textarea::placeholder { color: var(--text-muted); }
+
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s, transform 0.1s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover { opacity: 0.9; transform: scale(1.05); }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .send-btn svg { width: 16px; height: 16px; fill: white; }
+
+        /* Export button */
+        .export-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Markdown-like formatting in bubbles */
+        .bubble strong { color: white; font-weight: 600; }
+        .bubble em { color: var(--text-muted); }
+        .bubble hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+        /* Hint text */
+        .hint {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">🎯</div>
+    <div class="header-info">
+        <h1>Agente de Prospección</h1>
+        <p>Busca empresas y contactos en LinkedIn · Gratis</p>
+    </div>
+    <div class="status-dot"></div>
+</div>
+
+<div class="chat-container" id="chat">
+    <div class="welcome">
+        <div class="welcome-icon">🤖</div>
+        <h2>¿Qué quieres buscar hoy?</h2>
+        <p>Dime el tipo de empresa o contacto que necesitas y lo busco por ti</p>
+        <div class="suggestions">
+            <div class="suggestion" onclick="setQuery(this.innerText)">10 empresas de mensajería en México</div>
+            <div class="suggestion" onclick="setQuery(this.innerText)">Director de Operaciones en empresas de logística CDMX</div>
+            <div class="suggestion" onclick="setQuery(this.innerText)">Empresas de tecnología en Monterrey 50-200 empleados</div>
+            <div class="suggestion" onclick="setQuery(this.innerText)">Gerente de Compras en empresas manufactureras</div>
+        </div>
+    </div>
+</div>
+
+<div class="input-area">
+    <div class="input-wrapper">
+        <textarea 
+            id="queryInput" 
+            placeholder="Ej: Busca 10 empresas de mensajería en México con 50-200 empleados..."
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendQuery()">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+    </div>
+    <p class="hint">Presiona Enter para enviar · Shift+Enter para nueva línea</p>
+</div>
+
+<script>
+    let isLoading = false;
+    let lastResults = null;
+
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendQuery();
+        }
+    }
+
+    function setQuery(text) {
+        document.getElementById('queryInput').value = text;
+        document.getElementById('queryInput').focus();
+        autoResize(document.getElementById('queryInput'));
+    }
+
+    function addMessage(type, content) {
+        const chat = document.getElementById('chat');
+        
+        // Remove welcome screen on first message
+        const welcome = chat.querySelector('.welcome');
+        if (welcome) welcome.remove();
+
+        const div = document.createElement('div');
+        div.className = `message ${type}`;
+
+        const avatar = type === 'agent' ? '🤖' : '👤';
+        
+        div.innerHTML = `
+            <div class="avatar">${avatar}</div>
+            <div class="bubble">${content}</div>
+        `;
+
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        return div.querySelector('.bubble');
+    }
+
+    function addStatus(message) {
+        const chat = document.getElementById('chat');
+        const div = document.createElement('div');
+        div.className = 'status-message';
+        div.id = 'current-status';
+        div.innerHTML = `<div class="spinner"></div><span>${message}</span>`;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        return div;
+    }
+
+    function removeStatus() {
+        const status = document.getElementById('current-status');
+        if (status) status.remove();
+    }
+
+    function formatResult(text) {
+        // Formatear markdown básico
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n---\n/g, '<hr>')
+            .replace(/\n/g, '<br>');
+    }
+
+    function addExportButton(results) {
+        const chat = document.getElementById('chat');
+        const div = document.createElement('div');
+        div.style.padding = '0 44px';
+        div.innerHTML = `
+            <button class="export-btn" onclick="exportCSV()">
+                📥 Descargar Excel/CSV
+            </button>
+        `;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function exportCSV() {
+        if (!lastResults) return;
+        
+        const lines = ['Nombre,Industria,Empleados,Ubicación,LinkedIn,Sitio Web,Contacto,Señal de Compra'];
+        
+        if (lastResults.companies) {
+            lastResults.companies.forEach(c => {
+                lines.push(`"${c.nombre || ''}","${c.industria || ''}","${c.empleados || ''}","${c.ubicacion || ''}","${c.linkedin_url || ''}","${c.website || ''}","${c.contacto || ''}","${c.señal_compra || ''}"`);
+            });
+        }
+        
+        if (lastResults.people) {
+            const header = 'Nombre,Puesto,Empresa,Ubicación,LinkedIn,Descripción';
+            lines[0] = header;
+            lastResults.people.forEach(p => {
+                lines.push(`"${p.nombre || ''}","${p.puesto || ''}","${p.empresa || ''}","${p.ubicacion || ''}","${p.linkedin_url || ''}","${p.descripcion || ''}"`);
+            });
+        }
+        
+        const csv = lines.join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `prospectos_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
+
+    async function sendQuery() {
+        if (isLoading) return;
+        
+        const input = document.getElementById('queryInput');
+        const query = input.value.trim();
+        if (!query) return;
+
+        isLoading = true;
+        document.getElementById('sendBtn').disabled = true;
+        input.value = '';
+        autoResize(input);
+
+        // Add user message
+        addMessage('user', query);
+
+        // Add status
+        let statusEl = addStatus('Analizando tu búsqueda...');
+
+        try {
+            const response = await fetch('/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let agentBubble = null;
+            let fullText = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+
+                            if (parsed.type === 'status') {
+                                removeStatus();
+                                statusEl = addStatus(parsed.message);
+                            } else if (parsed.type === 'result') {
+                                removeStatus();
+                                
+                                // Parse results if JSON embedded
+                                fullText = parsed.message;
+                                
+                                if (!agentBubble) {
+                                    agentBubble = addMessage('agent', formatResult(fullText));
+                                } else {
+                                    agentBubble.innerHTML = formatResult(fullText);
+                                }
+                                
+                                // Try to extract structured data for export
+                                try {
+                                    const jsonMatch = fullText.match(/```json(.*?)```/s);
+                                    if (jsonMatch) {
+                                        lastResults = JSON.parse(jsonMatch[1]);
+                                        addExportButton(lastResults);
+                                    }
+                                } catch(e) {}
+
+                            } else if (parsed.type === 'error') {
+                                removeStatus();
+                                addMessage('agent', `❌ ${parsed.message}`);
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            // Add export button if we got results
+            if (fullText && fullText.includes('🏢')) {
+                addExportButton({});
+            }
+
+        } catch (error) {
+            removeStatus();
+            addMessage('agent', '❌ Error de conexión. Por favor intenta de nuevo.');
+        }
+
+        isLoading = false;
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+    }
+</script>
+
+</body>
+</html>
